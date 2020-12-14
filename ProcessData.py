@@ -5,19 +5,6 @@ from algorithm_project import get_data, job_task_relationship, get_index
 import math
 
 
-def get_K(Job_List):
-    return len(Job_List)
-
-
-def get_D():
-    pass
-
-
-def get_T_k(Job_Task_List, K):
-    T_k = {}
-    for i in range(K):
-        T_k[K] = len(Job_Task_List['A' + i])
-
 
 class Mapper:
     def __init__(self, Job_List, Task_List, Slot_Number, Data_Partition):
@@ -95,8 +82,7 @@ class D_kis:  # checked: OK
 
         # assign task_id to d[k][i][s]
         self.d_kis = np.zeros((max_k, max_i, max_s))
-        # for k in range(max_k):
-        # for i in range(max_i):
+
         for ss in range(max_datapartition):
             data_partition_name = data_partition_list[ss]
             datacenter_name = mapper.get_data_partition2data_center(data_partition_name)
@@ -147,18 +133,7 @@ class C_kij:
                                 max_c = 0  # there is no way from `s` to `j`, so we ignore `c[k][i][j]` and set it 0
                                 break
                     self.c_kij[k][i][j] = max_c
-        # for i in range(max_i):
-        #     for j in range(max_j):
-        #         for k in range(max_k):
-        #             max_c = -1
-        #             for s in range(max_s):
-        #                 if s != j:
-        #                     d_kis_num = d_kis[k][i][s]
-        #                     b_sj_num = self.b_sj[s][j]
-        #                     if b_sj_num != 0:
-        #                         cur_c = d_kis_num / b_sj_num
-        #                         max_c = max(max_c, cur_c)
-        #             self.c_kij[k][i][j] = max_c
+
 
     def compute_b_sj(self):  # checked: OK
         max_len = len(self.datacenter_list)
@@ -191,7 +166,14 @@ class E_kij:
     def get_e_kij(self):
         return self.e_kij
 
-
+def get_M(mapper, Job_List, Job_Task_Dict):
+    datacenter_list = mapper.get_datacenter_list()
+    J = len(datacenter_list)
+    sum_nk = 0
+    for i in range(len(Job_List)):
+        job_name = Job_List[i]
+        sum_nk = sum_nk + len(Job_Task_Dict[job_name])
+    return sum_nk * J
 
 if __name__ == "__main__":
     # test code
@@ -205,5 +187,6 @@ if __name__ == "__main__":
     C_kij_instance.compute_b_sj()
     C_kij_instance.compute_c_kij()
     E_kij_instance = E_kij(Execution_Time, C_kij_instance.get_c_kij(), Job_Task_List, mapper_instance)
+    M = get_M(mapper_instance, Job_List, Job_Task_Dict)
     print("pause")
     print("pause")
