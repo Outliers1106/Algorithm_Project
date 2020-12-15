@@ -1,13 +1,13 @@
 import numpy as np
 from utils import TwoWayDict
 import pandas as pd
-from algorithm_project import get_data, job_task_relationship, get_index
+from ReadData import get_data, job_task_relationship, get_index
 import math
 
 
 
 class Mapper:
-    def __init__(self, Job_List, Task_List, Slot_Number, Data_Partition):
+    def __init__(self, Job_List, Task_List, Slot_Number, Data_Partition, Job_Task_Dict):
         self.job = TwoWayDict()
         self.task = TwoWayDict()
         self.datacenter = TwoWayDict()
@@ -38,6 +38,15 @@ class Mapper:
         for i in range(len(Data_Partition['Data Partition'])):
             self.data_partition_list.append(Data_Partition['Data Partition'][i])
 
+        self.job_task_idx_mapping = {}
+        for i in range(len(Job_List)):
+            job_name = Job_List[i]
+            job_id = self.get_job(job_name)
+            self.job_task_idx_mapping[job_id] = list()
+            for task_name in Job_Task_Dict[job_name]:
+                task_id = self.get_task(task_name)
+                self.job_task_idx_mapping[job_id].append(task_id)
+
     def get_job(self, key):
         return self.job[key]
 
@@ -64,6 +73,10 @@ class Mapper:
 
     def get_data_partition_list(self):
         return self.data_partition_list
+
+    def get_job_task_idx_mapping(self):
+        # a dict
+        return self.job_task_idx_mapping
 
 
 class D_kis:  # checked: OK
@@ -166,6 +179,17 @@ class E_kij:
     def get_e_kij(self):
         return self.e_kij
 
+class A_j:
+    def __init__(self, Slot_Number):
+        dc_num = len(Slot_Number['DC'])
+        self.a_j = np.zeros(dc_num)
+        for i in range(dc_num):
+            self.a_j[i] = Slot_Number['Num of Slots'][i]
+
+    def get_a_j(self):
+        return self.a_j
+
+
 def get_M(mapper, Job_List, Job_Task_Dict):
     datacenter_list = mapper.get_datacenter_list()
     J = len(datacenter_list)
@@ -181,12 +205,13 @@ if __name__ == "__main__":
     Job_List, Task_List, Job_Task_List, Job_Task_Dict = job_task_relationship()
     get_index(Job_Data, Job_Task_List)
 
-    mapper_instance = Mapper(Job_List, Task_List, Slot_Number, Data_Partition)
+    mapper_instance = Mapper(Job_List, Task_List, Slot_Number, Data_Partition, Job_Task_Dict)
     D_kis_instance = D_kis(mapper_instance, Job_Data)
     C_kij_instance = C_kij(D_kis_instance, mapper_instance, Inter_Link)
     C_kij_instance.compute_b_sj()
     C_kij_instance.compute_c_kij()
     E_kij_instance = E_kij(Execution_Time, C_kij_instance.get_c_kij(), Job_Task_List, mapper_instance)
     M = get_M(mapper_instance, Job_List, Job_Task_Dict)
+    A_j_instance = A_j(Slot_Number)
     print("pause")
     print("pause")
