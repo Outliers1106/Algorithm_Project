@@ -189,6 +189,9 @@ class A_j:
     def get_a_j(self):
         return self.a_j
 
+    def decrease_a_j(self,index):
+        self.a_j[index] = self.a_j[index] - 1
+
 
 def get_M(mapper, Job_List, Job_Task_Dict):
     datacenter_list = mapper.get_datacenter_list()
@@ -199,19 +202,18 @@ def get_M(mapper, Job_List, Job_Task_Dict):
         sum_nk = sum_nk + len(Job_Task_Dict[job_name])
     return sum_nk * J
 
-if __name__ == "__main__":
-    # test code
-    Inter_Link, Job_Data, Execution_Time, Job_Precedence, Slot_Number, Data_Partition = get_data()
-    Job_List, Task_List, Job_Task_List, Job_Task_Dict = job_task_relationship()
-    get_index(Job_Data, Job_Task_List)
+# if __name__ == "__main__":
+#     # test code
+#     Inter_Link, Job_Data, Execution_Time, Job_Precedence, Slot_Number, Data_Partition = get_data()
+#     Job_List, Task_List, Job_Task_List, Job_Task_Dict = job_task_relationship()
+#     get_index(Job_Data, Job_Task_List)
+#
+#     mapper_instance = Mapper(Job_List, Task_List, Slot_Number, Data_Partition, Job_Task_Dict)
+#     D_kis_instance = D_kis(mapper_instance, Job_Data)
+#     C_kij_instance = C_kij(D_kis_instance, mapper_instance, Inter_Link)
+#     C_kij_instance.compute_b_sj()
+#     C_kij_instance.compute_c_kij()
+#     E_kij_instance = E_kij(Execution_Time, C_kij_instance.get_c_kij(), Job_Task_List, mapper_instance)
+#     M = get_M(mapper_instance, Job_List, Job_Task_Dict)
+#     A_j_instance = A_j(Slot_Number)
 
-    mapper_instance = Mapper(Job_List, Task_List, Slot_Number, Data_Partition, Job_Task_Dict)
-    D_kis_instance = D_kis(mapper_instance, Job_Data)
-    C_kij_instance = C_kij(D_kis_instance, mapper_instance, Inter_Link)
-    C_kij_instance.compute_b_sj()
-    C_kij_instance.compute_c_kij()
-    E_kij_instance = E_kij(Execution_Time, C_kij_instance.get_c_kij(), Job_Task_List, mapper_instance)
-    M = get_M(mapper_instance, Job_List, Job_Task_Dict)
-    A_j_instance = A_j(Slot_Number)
-    print("pause")
-    print("pause")
