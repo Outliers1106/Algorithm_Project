@@ -1,3 +1,7 @@
+# @ Time : 2020/12/15
+# @ Author: Tu Yanlun
+# @ Team mates: Xie Yuzhang, Yu Jingwei
+
 import numpy as np
 import gurobipy as gp
 from gurobipy import GRB

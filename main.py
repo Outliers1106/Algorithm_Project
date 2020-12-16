@@ -1,3 +1,7 @@
+# @ Time : 2020/12/15
+# @ Author: Tu Yanlun
+# @ Team mates: Xie Yuzhang, Yu Jingwei
+
 import numpy as np
 from ReadData import get_data, job_task_relationship, get_index
 from ProcessData import Mapper, D_kis, C_kij, E_kij, get_M, A_j

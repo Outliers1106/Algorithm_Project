@@ -1,8 +1,12 @@
+# @ Time : 2020/12/15
+# @ Author: Tu Yanlun
+# @ Team mates: Xie Yuzhang, Yu Jingwei
+
 import numpy as np
 from utils import TwoWayDict
 import pandas as pd
-from ReadData import get_data, job_task_relationship, get_index
-import math
+# from ReadData import get_data, job_task_relationship, get_index
+# import math
 
 
 
