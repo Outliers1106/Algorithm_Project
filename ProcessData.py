@@ -5,9 +5,9 @@
 import numpy as np
 from utils import TwoWayDict
 import pandas as pd
-# from ReadData import get_data, job_task_relationship, get_index
-# import math
 
+from ReadData import get_data, job_task_relationship, get_index
+import math
 
 
 class Mapper:
@@ -140,7 +140,8 @@ class C_kij:
                 for j in range(max_j):
                     max_c = 0
                     for s in range(max_s):
-                        if s != j and d_kis[k][i][s] > 0:  # `k`th task `i`th job need read data in datacenter `s`
+                        if d_kis[k][i][s] > 0:
+                        # if s != j and d_kis[k][i][s] > 0:  # `k`th task `i`th job need read data in datacenter `s`
                             d_kis_num = d_kis[k][i][s]
                             b_sj_num = self.b_sj[s][j]  # speed from `s` to `j`
                             if b_sj_num > 0:  # speed need > 0
@@ -151,17 +152,16 @@ class C_kij:
                                 break
                     self.c_kij[k][i][j] = max_c
 
-
     def compute_b_sj(self):  # checked: OK
         max_len = len(self.datacenter_list)
         self.b_sj = np.zeros((max_len, max_len))
         for s in range(len(self.datacenter_list)):
             for j in range(len(self.datacenter_list)):
-                if s != j:
-                    datacenter_s_name = self.mapper.get_datacenter(j)
-                    speed = self.Inter_Link[datacenter_s_name][s]
-                    if not pd.isnull(speed) and speed != '-':
-                        self.b_sj[s][j] = speed
+                # if s != j:
+                datacenter_s_name = self.mapper.get_datacenter(j)
+                speed = self.Inter_Link[datacenter_s_name][s]
+                if not pd.isnull(speed) and speed != '-':
+                    self.b_sj[s][j] = speed
 
     def get_c_kij(self):
         return self.c_kij
@@ -183,6 +183,7 @@ class E_kij:
     def get_e_kij(self):
         return self.e_kij
 
+
 class A_j:
     def __init__(self, Slot_Number):
         dc_num = len(Slot_Number['DC'])
@@ -193,7 +194,7 @@ class A_j:
     def get_a_j(self):
         return self.a_j
 
-    def decrease_a_j(self,index):
+    def decrease_a_j(self, index):
         self.a_j[index] = self.a_j[index] - 1
 
 
@@ -206,18 +207,80 @@ def get_M(mapper, Job_List, Job_Task_Dict):
         sum_nk = sum_nk + len(Job_Task_Dict[job_name])
     return sum_nk * J
 
-# if __name__ == "__main__":
-#     # test code
-#     Inter_Link, Job_Data, Execution_Time, Job_Precedence, Slot_Number, Data_Partition = get_data()
-#     Job_List, Task_List, Job_Task_List, Job_Task_Dict = job_task_relationship()
-#     get_index(Job_Data, Job_Task_List)
-#
-#     mapper_instance = Mapper(Job_List, Task_List, Slot_Number, Data_Partition, Job_Task_Dict)
-#     D_kis_instance = D_kis(mapper_instance, Job_Data)
-#     C_kij_instance = C_kij(D_kis_instance, mapper_instance, Inter_Link)
-#     C_kij_instance.compute_b_sj()
-#     C_kij_instance.compute_c_kij()
-#     E_kij_instance = E_kij(Execution_Time, C_kij_instance.get_c_kij(), Job_Task_List, mapper_instance)
-#     M = get_M(mapper_instance, Job_List, Job_Task_Dict)
-#     A_j_instance = A_j(Slot_Number)
 
+class Precedence:
+    # i x i boolean matrix, the i th row task has several tasks of constraints
+    def __init__(self, Task_List, mapper, Job_Precedence=None):
+        self.Task_List = Task_List
+        self.mapper = mapper
+        if Job_Precedence is not None:
+            self.Job_Precedence = Job_Precedence
+        self.max_i = len(Task_List)
+        self.precedence = np.zeros((self.max_i, self.max_i))
+
+    def compute_precedence(self):
+        str_constr_list = self.Job_Precedence['Precedence Constraint.1']
+        for num in range(len(str_constr_list)):
+            if len(str_constr_list[num]) > 3:  # { } == 3
+                # the num th task has constraints
+                for i in range(len(self.Task_List)):
+                    if i != num and self.Task_List[i] in str_constr_list[num]:
+                        self.precedence[num][i] = 1
+
+    def get_precedence(self):
+        self.compute_precedence()
+        return self.precedence
+
+
+class W_kij:
+    def __init__(self, c_kij, e_kij, precedence):
+        self.max_k, self.max_i, self.max_j = np.shape(c_kij)
+        self.c_kij = c_kij
+        self.e_kij = e_kij
+        self.x_kij = np.ones((self.max_k, self.max_i, self.max_j))
+        self.precedence = precedence
+
+    def update_x_kij(self, x_kij):
+        self.x_kij = x_kij
+
+    def compute_w_kij(self):
+        self.w_kij = np.zeros((self.max_k, self.max_i, self.max_j))
+        for k in range(self.max_k):
+            for i in range(self.max_i):
+                max_w = 0
+                for i_constr in range(self.max_i):
+                    if self.precedence[i][i_constr] == 1:
+                        for j in range(self.max_j):
+                            cur_w = self.x_kij[k][i_constr][j] * (
+                                        self.c_kij[k][i_constr][j] + self.e_kij[k][i_constr][j])
+                            if cur_w > max_w:
+                                max_w = cur_w
+                for j in range(self.max_j):
+                    self.w_kij[k][i][j] = max_w
+
+    def get_w_kij(self):
+        return self.w_kij
+
+
+if __name__ == "__main__":
+    # test code
+    Inter_Link, Job_Data, Execution_Time, Job_Precedence, Slot_Number, Data_Partition = get_data()
+    Job_List, Task_List, Job_Task_List, Job_Task_Dict = job_task_relationship()
+    get_index(Job_Data, Job_Task_List)
+
+    mapper_instance = Mapper(Job_List, Task_List, Slot_Number, Data_Partition, Job_Task_Dict)
+    D_kis_instance = D_kis(mapper_instance, Job_Data)
+    C_kij_instance = C_kij(D_kis_instance, mapper_instance, Inter_Link)
+    C_kij_instance.compute_b_sj()
+    C_kij_instance.compute_c_kij()
+    E_kij_instance = E_kij(Execution_Time, C_kij_instance.get_c_kij(), Job_Task_List, mapper_instance)
+    M = get_M(mapper_instance, Job_List, Job_Task_Dict)
+    A_j_instance = A_j(Slot_Number)
+
+    Precedence_instance = Precedence(Task_List, mapper_instance, Job_Precedence=Job_Precedence)
+    precedence = Precedence_instance.get_precedence()
+
+    W_kij_instance = W_kij(c_kij=C_kij_instance.get_c_kij(), e_kij=E_kij_instance.get_e_kij(), precedence=precedence)
+    W_kij_instance.compute_w_kij()
+    w_kij = W_kij_instance.get_w_kij()
+    print("pause")
