@@ -6,10 +6,10 @@ import numpy as np
 import gurobipy as gp
 from gurobipy import GRB
 import math
+# from ProcessData import Mapper, D_kis, C_kij, E_kij, get_M, A_j, W_kij, Precedence
+# from ReadData import get_data, job_task_relationship, get_index
 
-
-
-def LPsolver(c_kij, e_kij, M, a_j, job_task_mapping, fix_kij_tuple_list, init_x_kij):
+def LPsolver(c_kij, e_kij, M, a_j, job_task_mapping, fix_kij_tuple_list, init_x_kij, w_kij):
     model = gp.Model("LPsolver")
 
     max_k, max_i, max_j = c_kij.shape
@@ -32,7 +32,7 @@ def LPsolver(c_kij, e_kij, M, a_j, job_task_mapping, fix_kij_tuple_list, init_x_
     # print(gp.quicksum(la_0[k, i, j] + math.pow(M, c_kij[k][i][j] + e_kij[k][i][j]) * la_1[k, i, j] for k, i, j in kij_tuple_list))
     # 需要优化的目标函数
     model.setObjective(gp.quicksum(
-        la_0[k, i, j] + math.pow(M, c_kij[k][i][j] + e_kij[k][i][j]) * la_1[k, i, j] for k, i, j in kij_tuple_list if
+        la_0[k, i, j] + math.pow(M, c_kij[k][i][j] + e_kij[k][i][j] + w_kij[k][i][j]) * la_1[k, i, j] for k, i, j in kij_tuple_list if
         (k, i, j) not in fix_kij_tuple_list),
         GRB.MINIMIZE)
 
@@ -123,6 +123,9 @@ def update_resource_capacity(res_j, A_j):
 #     E_kij_instance = E_kij(Execution_Time, C_kij_instance.get_c_kij(), Job_Task_List, mapper_instance)
 #     M = get_M(mapper_instance, Job_List, Job_Task_Dict)
 #     A_j_instance = A_j(Slot_Number)
+#     Precedence_instance = Precedence(Task_List, mapper_instance, Job_Precedence=Job_Precedence)
+#     precedence = Precedence_instance.get_precedence()
+#     W_kij_instance = W_kij(c_kij=C_kij_instance.get_c_kij(), e_kij=E_kij_instance.get_e_kij(), precedence=precedence)
 #
 #     max_k, max_i, max_j = C_kij_instance.get_c_kij().shape
 #
@@ -133,16 +136,23 @@ def update_resource_capacity(res_j, A_j):
 #     while (len(visited_k) < max_k):
 #         print("the {} iteration".format(len(visited_k)))
 #         print("------------------------------------------------------")
+#         W_kij_instance.compute_w_kij()
+#         w_kij = W_kij_instance.get_w_kij()
+#
 #         x_kij = LPsolver(c_kij=C_kij_instance.get_c_kij(), e_kij=E_kij_instance.get_e_kij(), M=M,
 #                          a_j=A_j_instance.get_a_j(),
 #                          job_task_mapping=mapper_instance.get_job_task_idx_mapping(),
 #                          fix_kij_tuple_list=fix_kij_tuple_list,
-#                          init_x_kij=init_x_kij)
+#                          init_x_kij=init_x_kij,
+#                          w_kij=w_kij)
 #
 #         res_k, res_i, res_j = compute_max_phi(x_kij=x_kij, c_kij=C_kij_instance.get_c_kij(),
 #                                           e_kij=E_kij_instance.get_e_kij(), visited_k=visited_k)
 #
 #         visited_k.add(res_k)
+#
+#         # update w_kij
+#         W_kij_instance.update_x_kij(x_kij)
 #
 #         fix_x_kij(fix_kij_tuple_list=fix_kij_tuple_list, res_k=res_k, res_i=res_i, max_j=max_j, init_x_kij=init_x_kij,
 #                   x_kij=x_kij)

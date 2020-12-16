@@ -6,8 +6,8 @@ import numpy as np
 from utils import TwoWayDict
 import pandas as pd
 
-from ReadData import get_data, job_task_relationship, get_index
-import math
+# from ReadData import get_data, job_task_relationship, get_index
+# import math
 
 
 class Mapper:
@@ -262,25 +262,25 @@ class W_kij:
         return self.w_kij
 
 
-if __name__ == "__main__":
-    # test code
-    Inter_Link, Job_Data, Execution_Time, Job_Precedence, Slot_Number, Data_Partition = get_data()
-    Job_List, Task_List, Job_Task_List, Job_Task_Dict = job_task_relationship()
-    get_index(Job_Data, Job_Task_List)
-
-    mapper_instance = Mapper(Job_List, Task_List, Slot_Number, Data_Partition, Job_Task_Dict)
-    D_kis_instance = D_kis(mapper_instance, Job_Data)
-    C_kij_instance = C_kij(D_kis_instance, mapper_instance, Inter_Link)
-    C_kij_instance.compute_b_sj()
-    C_kij_instance.compute_c_kij()
-    E_kij_instance = E_kij(Execution_Time, C_kij_instance.get_c_kij(), Job_Task_List, mapper_instance)
-    M = get_M(mapper_instance, Job_List, Job_Task_Dict)
-    A_j_instance = A_j(Slot_Number)
-
-    Precedence_instance = Precedence(Task_List, mapper_instance, Job_Precedence=Job_Precedence)
-    precedence = Precedence_instance.get_precedence()
-
-    W_kij_instance = W_kij(c_kij=C_kij_instance.get_c_kij(), e_kij=E_kij_instance.get_e_kij(), precedence=precedence)
-    W_kij_instance.compute_w_kij()
-    w_kij = W_kij_instance.get_w_kij()
-    print("pause")
+# if __name__ == "__main__":
+#     # test code
+#     Inter_Link, Job_Data, Execution_Time, Job_Precedence, Slot_Number, Data_Partition = get_data()
+#     Job_List, Task_List, Job_Task_List, Job_Task_Dict = job_task_relationship()
+#     get_index(Job_Data, Job_Task_List)
+#
+#     mapper_instance = Mapper(Job_List, Task_List, Slot_Number, Data_Partition, Job_Task_Dict)
+#     D_kis_instance = D_kis(mapper_instance, Job_Data)
+#     C_kij_instance = C_kij(D_kis_instance, mapper_instance, Inter_Link)
+#     C_kij_instance.compute_b_sj()
+#     C_kij_instance.compute_c_kij()
+#     E_kij_instance = E_kij(Execution_Time, C_kij_instance.get_c_kij(), Job_Task_List, mapper_instance)
+#     M = get_M(mapper_instance, Job_List, Job_Task_Dict)
+#     A_j_instance = A_j(Slot_Number)
+#
+#     Precedence_instance = Precedence(Task_List, mapper_instance, Job_Precedence=Job_Precedence)
+#     precedence = Precedence_instance.get_precedence()
+#
+#     W_kij_instance = W_kij(c_kij=C_kij_instance.get_c_kij(), e_kij=E_kij_instance.get_e_kij(), precedence=precedence)
+#     W_kij_instance.compute_w_kij()
+#     w_kij = W_kij_instance.get_w_kij()
+#     print("pause")
