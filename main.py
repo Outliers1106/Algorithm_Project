@@ -30,7 +30,7 @@ if __name__ == "__main__":
     visited_k = set()
     init_x_kij = np.zeros((max_k, max_i, max_j))
     x_kij = None
-    while (len(visited_k) < max_k):
+    while (len(visited_k) < max_k-2):
         print("the {} iteration".format(len(visited_k)))
         print("------------------------------------------------------")
         W_kij_instance.compute_w_kij()
@@ -42,7 +42,8 @@ if __name__ == "__main__":
                          fix_kij_tuple_list=fix_kij_tuple_list,
                          init_x_kij=init_x_kij,
                          w_kij=w_kij,
-                         precedence=precedence)
+                         precedence=precedence,
+                         b_sj=C_kij_instance.get_b_sj())
 
         res_k, res_i, res_j = compute_max_phi(x_kij=x_kij, c_kij=C_kij_instance.get_c_kij(),
                                               e_kij=E_kij_instance.get_e_kij(), visited_k=visited_k)

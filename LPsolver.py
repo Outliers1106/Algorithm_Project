@@ -11,7 +11,7 @@ import math
 # from ProcessData import Mapper, D_kis, C_kij, E_kij, get_M, A_j, W_kij, Precedence
 # from ReadData import get_data, job_task_relationship, get_index
 
-def LPsolver(c_kij, e_kij, M, a_j, job_task_mapping, fix_kij_tuple_list, init_x_kij, w_kij, precedence):
+def LPsolver(c_kij, e_kij, M, a_j, job_task_mapping, fix_kij_tuple_list, init_x_kij, w_kij, precedence, b_sj):
     model = gp.Model("LPsolver")
 
     max_k, max_i, max_j = c_kij.shape
@@ -49,36 +49,48 @@ def LPsolver(c_kij, e_kij, M, a_j, job_task_mapping, fix_kij_tuple_list, init_x_
     # constraint 5
     for j in range(max_j):
         model.addConstr(
-            gp.quicksum(x[k, i, j] for k, i in ki_tuple_list if (k, i, j) not in fix_kij_tuple_list) <= a_j[j])
+            gp.quicksum(x[k, i, j] for k, i in ki_tuple_list if (k, i, j) not in fix_kij_tuple_list) <= a_j[j], name="constraint 5")
     # constraint 6
     for k in range(max_k):
         for i in range(max_i):
             if i in job_task_mapping[k]:
-                sum_equal_1_flag = True
+                # 当前task的c_kij必须可行
+                cur_task_sum_equal_1_flag = True
                 c_kij_equal_0_cnt = 0
                 for j in range(max_j):
                     if c_kij[k][i][j] == 0:
                         c_kij_equal_0_cnt = c_kij_equal_0_cnt + 1
                 if c_kij_equal_0_cnt == max_j:
-                    sum_equal_1_flag = False
-                if sum_equal_1_flag is True:
+                    cur_task_sum_equal_1_flag = False
+                # 当前task的precedence的c_kij也必须可行
+                pre_tasks_sum_equal_1_flag = True
+                for i_precedence in range(max_i):
+                    c_kij_equal_0_cnt = 0
+                    if precedence[i][i_precedence] == 1:
+                        for j in range(max_j):
+                            if c_kij[k][i_precedence][j] == 0:
+                                c_kij_equal_0_cnt = c_kij_equal_0_cnt + 1
+                        if c_kij_equal_0_cnt == max_j:
+                            pre_tasks_sum_equal_1_flag = False
+
+                if cur_task_sum_equal_1_flag is True and pre_tasks_sum_equal_1_flag is True and k!=3 and k!=5 :
                     model.addConstr(
-                        gp.quicksum(x[k, i, j] for j in range(max_j)) == 1)
+                        gp.quicksum(x[k, i, j] for j in range(max_j)) == 1, name="constraint6-1")
                 else:
                     model.addConstr(
-                        gp.quicksum(x[k, i, j] for j in range(max_j)) == 0)
+                        gp.quicksum(x[k, i, j] for j in range(max_j)) == 0, name="constraint6-2")
 
     # additional constraint due to my design of data structure
     for k in range(max_k):
         for i in range(max_i):
             for j in range(max_j):
                 if i not in job_task_mapping[k] and (k, i, j) not in fix_kij_tuple_list:
-                    model.addConstr(x[k, i, j] == 0)
+                    model.addConstr(x[k, i, j] == 0, name="constraint data structure")
 
     # additional constraint if c_kij == 0, it means you can't set x_kij = 1, otherwise you can't fetch the data
     for k, i, j in kij_tuple_list:
         if c_kij[k][i][j] == 0 and (k, i, j) not in fix_kij_tuple_list:
-            model.addConstr(x[k, i, j] == 0)
+            model.addConstr(x[k, i, j] == 0, name="constraint cant fetch")
 
     # additional constraint if there exists precedence constraints (only same job has precedence)
     for k in range(max_k):
@@ -88,15 +100,23 @@ def LPsolver(c_kij, e_kij, M, a_j, job_task_mapping, fix_kij_tuple_list, init_x_
                     for i2 in range(max_i):
                         if i2 in job_task_mapping[k]:
                             for j2 in range(max_j):
-                                if i1 != i2 and j1 != j2 and precedence[i1][i2] == 1 and c_kij[k][i1][j1] == 0 and \
-                                        c_kij[k][i2][j2] == 0 and (
-                                        k, i1, j1) not in fix_kij_tuple_list and (k, i2, j2) not in fix_kij_tuple_list:
-                                    model.addConstr(x[k, i1, j1] + x[k, i2, j2] <= 1)
-
+                                if i1 != i2 and j1 != j2 and precedence[i1][i2] == 1 and c_kij[k][i1][j1] > 0 and \
+                                        c_kij[k][i2][j2] > 0 and b_sj[j2][j1] == 0:
+                                    # model.addGenConstrIndicator(x[k, i2, j2], 0, x[k, i1, j1] == 0)
+                                    model.addConstr(x[k, i1, j1] + x[k, i2, j2] <= 1, name="constraint precedence")
+                                # if i1 != i2 and j1 != j2 and precedence[i1][i2] == 1 and c_kij[k][i1][j1] == 0 and \
+                                #         c_kij[k][i2][j2] == 0 and (
+                                #         k, i1, j1) not in fix_kij_tuple_list and (k, i2, j2) not in fix_kij_tuple_list:
+                                #     model.addConstr(x[k, i1, j1] + x[k, i2, j2] <= 1, name="constraint precedence1")
+                                # if i1 != i2 and j1 != j2 and precedence[i1][i2] == 1  and b_sj[j2][j1]==0 and (
+                                #         k, i1, j1) not in fix_kij_tuple_list and (k, i2, j2) not in fix_kij_tuple_list:
+                                #     model.addGenConstrIndicator(x[k, i2, j2], 0, x[k, i1, j1] == 0)
+                                    # model.addGenConstrIndicator(y[i + 1], 1, x[i + 1] == 0)
+                                    # model.addConstr(x[k, i1, j1]==0 if x[k, i2, j2]==0, name="constraint precedence2")
 
     # set fixed x kij (optimization function does not include them)
     for k, i, j in fix_kij_tuple_list:
-        model.addConstr(x[k, i, j] == init_x_kij[k][i][j])
+        model.addConstr(x[k, i, j] == init_x_kij[k][i][j], name="constraint fixed")
 
     model.optimize()
     # model.computeIIS()

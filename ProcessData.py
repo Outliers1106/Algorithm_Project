@@ -172,6 +172,9 @@ class C_kij:
     def get_c_kij(self):
         return self.c_kij
 
+    def get_b_sj(self):
+        return self.b_sj
+
 
 class E_kij:
     def __init__(self, Execution_Time, c_kij, Job_Task_List, mapper):
