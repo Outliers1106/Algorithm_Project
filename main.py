@@ -41,7 +41,8 @@ if __name__ == "__main__":
                          job_task_mapping=mapper_instance.get_job_task_idx_mapping(),
                          fix_kij_tuple_list=fix_kij_tuple_list,
                          init_x_kij=init_x_kij,
-                         w_kij=w_kij)
+                         w_kij=w_kij,
+                         precedence=precedence)
 
         res_k, res_i, res_j = compute_max_phi(x_kij=x_kij, c_kij=C_kij_instance.get_c_kij(),
                                               e_kij=E_kij_instance.get_e_kij(), visited_k=visited_k)

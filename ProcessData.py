@@ -6,6 +6,7 @@ import numpy as np
 from utils import TwoWayDict
 import pandas as pd
 
+
 # from ReadData import get_data, job_task_relationship, get_index
 # import math
 
@@ -135,22 +136,27 @@ class C_kij:
         max_s = len(datacenter_list)
         self.c_kij = np.zeros((max_k, max_i, max_j))
         d_kis = self.D_kis.get_d_kis()
+        flag = np.zeros((max_k, max_i, max_j))  # 用来判断放在dc j是否无法获得所需的数据
         for k in range(max_k):
             for i in range(max_i):
-                for j in range(max_j):
-                    max_c = 0
-                    for s in range(max_s):
-                        if d_kis[k][i][s] > 0:
-                        # if s != j and d_kis[k][i][s] > 0:  # `k`th task `i`th job need read data in datacenter `s`
+                for s in range(max_s):
+                    if d_kis[k][i][s] > 0:
+                        for j in range(max_j):
+
+                            # for s in range(max_s):
+                            # if s != j and d_kis[k][i][s] > 0:  # `k`th task `i`th job need read data in datacenter `s`
                             d_kis_num = d_kis[k][i][s]
                             b_sj_num = self.b_sj[s][j]  # speed from `s` to `j`
-                            if b_sj_num > 0:  # speed need > 0
+                            if b_sj_num > 0 and flag[k][i][j] == 0:  # speed need > 0
                                 cur_c = d_kis_num / b_sj_num
-                                max_c = max(max_c, cur_c)
+                                # max_c = max(max_c, cur_c)
+                                # else:
+                                #     max_c = 0  # there is no way from `s` to `j`, so we ignore `c[k][i][j]` and set it 0
+                                #     break
+                                self.c_kij[k][i][j] = max(self.c_kij[k][i][j], cur_c)
                             else:
-                                max_c = 0  # there is no way from `s` to `j`, so we ignore `c[k][i][j]` and set it 0
-                                break
-                    self.c_kij[k][i][j] = max_c
+                                flag[k][i][j] = 1
+                                self.c_kij[k][i][j] = 0
 
     def compute_b_sj(self):  # checked: OK
         max_len = len(self.datacenter_list)
@@ -251,16 +257,17 @@ class W_kij:
                 for i_constr in range(self.max_i):
                     if self.precedence[i][i_constr] == 1:
                         for j in range(self.max_j):
-                            cur_w = self.x_kij[k][i_constr][j] * (
-                                        self.c_kij[k][i_constr][j] + self.e_kij[k][i_constr][j])
-                            if cur_w > max_w:
-                                max_w = cur_w
+                            if self.c_kij[k][i_constr][j] != 0:
+                                cur_w = self.x_kij[k][i_constr][j] * (
+                                        self.c_kij[k][i_constr][j] + self.e_kij[k][i_constr][j] +
+                                        self.w_kij[k][i_constr][j])
+                                if cur_w > max_w:
+                                    max_w = cur_w
                 for j in range(self.max_j):
                     self.w_kij[k][i][j] = max_w
 
     def get_w_kij(self):
         return self.w_kij
-
 
 # if __name__ == "__main__":
 #     # test code

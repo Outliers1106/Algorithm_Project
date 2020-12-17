@@ -6,10 +6,12 @@ import numpy as np
 import gurobipy as gp
 from gurobipy import GRB
 import math
+
+
 # from ProcessData import Mapper, D_kis, C_kij, E_kij, get_M, A_j, W_kij, Precedence
 # from ReadData import get_data, job_task_relationship, get_index
 
-def LPsolver(c_kij, e_kij, M, a_j, job_task_mapping, fix_kij_tuple_list, init_x_kij, w_kij):
+def LPsolver(c_kij, e_kij, M, a_j, job_task_mapping, fix_kij_tuple_list, init_x_kij, w_kij, precedence):
     model = gp.Model("LPsolver")
 
     max_k, max_i, max_j = c_kij.shape
@@ -32,8 +34,9 @@ def LPsolver(c_kij, e_kij, M, a_j, job_task_mapping, fix_kij_tuple_list, init_x_
     # print(gp.quicksum(la_0[k, i, j] + math.pow(M, c_kij[k][i][j] + e_kij[k][i][j]) * la_1[k, i, j] for k, i, j in kij_tuple_list))
     # 需要优化的目标函数
     model.setObjective(gp.quicksum(
-        la_0[k, i, j] + math.pow(M, c_kij[k][i][j] + e_kij[k][i][j] + w_kij[k][i][j]) * la_1[k, i, j] for k, i, j in kij_tuple_list if
-        (k, i, j) not in fix_kij_tuple_list),
+        la_0[k, i, j] + math.pow(M, c_kij[k][i][j] + e_kij[k][i][j] + w_kij[k][i][j]) * la_1[k, i, j] for k, i, j in
+        kij_tuple_list if
+        (k, i, j) not in fix_kij_tuple_list and c_kij[k][i][j] != 0),
         GRB.MINIMIZE)
 
     # constraints of paper
@@ -51,8 +54,19 @@ def LPsolver(c_kij, e_kij, M, a_j, job_task_mapping, fix_kij_tuple_list, init_x_
     for k in range(max_k):
         for i in range(max_i):
             if i in job_task_mapping[k]:
-                model.addConstr(
-                    gp.quicksum(x[k, i, j] for j in range(max_j) ) == 1)
+                sum_equal_1_flag = True
+                c_kij_equal_0_cnt = 0
+                for j in range(max_j):
+                    if c_kij[k][i][j] == 0:
+                        c_kij_equal_0_cnt = c_kij_equal_0_cnt + 1
+                if c_kij_equal_0_cnt == max_j:
+                    sum_equal_1_flag = False
+                if sum_equal_1_flag is True:
+                    model.addConstr(
+                        gp.quicksum(x[k, i, j] for j in range(max_j)) == 1)
+                else:
+                    model.addConstr(
+                        gp.quicksum(x[k, i, j] for j in range(max_j)) == 0)
 
     # additional constraint due to my design of data structure
     for k in range(max_k):
@@ -61,12 +75,32 @@ def LPsolver(c_kij, e_kij, M, a_j, job_task_mapping, fix_kij_tuple_list, init_x_
                 if i not in job_task_mapping[k] and (k, i, j) not in fix_kij_tuple_list:
                     model.addConstr(x[k, i, j] == 0)
 
+    # additional constraint if c_kij == 0, it means you can't set x_kij = 1, otherwise you can't fetch the data
+    for k, i, j in kij_tuple_list:
+        if c_kij[k][i][j] == 0 and (k, i, j) not in fix_kij_tuple_list:
+            model.addConstr(x[k, i, j] == 0)
+
+    # additional constraint if there exists precedence constraints (only same job has precedence)
+    for k in range(max_k):
+        for i1 in range(max_i):
+            if i1 in job_task_mapping[k]:
+                for j1 in range(max_j):
+                    for i2 in range(max_i):
+                        if i2 in job_task_mapping[k]:
+                            for j2 in range(max_j):
+                                if i1 != i2 and j1 != j2 and precedence[i1][i2] == 1 and c_kij[k][i1][j1] == 0 and \
+                                        c_kij[k][i2][j2] == 0 and (
+                                        k, i1, j1) not in fix_kij_tuple_list and (k, i2, j2) not in fix_kij_tuple_list:
+                                    model.addConstr(x[k, i1, j1] + x[k, i2, j2] <= 1)
+
+
     # set fixed x kij (optimization function does not include them)
     for k, i, j in fix_kij_tuple_list:
         model.addConstr(x[k, i, j] == init_x_kij[k][i][j])
 
     model.optimize()
-
+    # model.computeIIS()
+    # model.write("model1.ilp")
     result_x = np.zeros((max_k, max_i, max_j))
 
     for k, i, j in kij_tuple_list:
@@ -107,8 +141,6 @@ def fix_x_kij(fix_kij_tuple_list, res_k, res_i, max_j, x_kij, init_x_kij):
 
 def update_resource_capacity(res_j, A_j):
     A_j.decrease_a_j(res_j)
-
-
 
 # if __name__ == "__main__":
 #     Inter_Link, Job_Data, Execution_Time, Job_Precedence, Slot_Number, Data_Partition = get_data()
