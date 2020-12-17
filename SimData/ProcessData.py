@@ -228,7 +228,7 @@ class Precedence:
         self.precedence = np.zeros((self.max_i, self.max_i))
 
     def compute_precedence(self):
-        str_constr_list = self.Job_Precedence['Precedence Constraint.1']
+        str_constr_list = self.Job_Precedence['Precedence Constraint']
         for num in range(len(str_constr_list)):
             if len(str_constr_list[num]) > 3:  # { } == 3
                 # the num th task has constraints

@@ -23,4 +23,10 @@ There are two folds, one for toy data, the other for simulated data.
 python SimData/main.py 
 python ToyData/main.py 
 ``` 
-After running, you can get the final assignment of matrix $x$ with numpy format.
+After running, you can get the final assignment of matrix ```x``` with numpy format named ```final_x.npy```.
+
+You can use 
+```python
+python SimData/modifysimulationdata.py
+```
+to generate simulated data.

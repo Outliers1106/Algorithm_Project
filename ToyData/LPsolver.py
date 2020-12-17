@@ -6,7 +6,7 @@ import numpy as np
 import gurobipy as gp
 from gurobipy import GRB
 import math
-
+import time
 
 # from ProcessData import Mapper, D_kis, C_kij, E_kij, get_M, A_j, W_kij, Precedence
 # from ReadData import get_data, job_task_relationship, get_index
@@ -117,8 +117,10 @@ def LPsolver(c_kij, e_kij, M, a_j, job_task_mapping, fix_kij_tuple_list, init_x_
     # set fixed x kij (optimization function does not include them)
     for k, i, j in fix_kij_tuple_list:
         model.addConstr(x[k, i, j] == init_x_kij[k][i][j], name="constraint fixed")
-
+    start_time = time.time()
     model.optimize()
+    end_time = time.time()
+    print("optimization cost:{} s".format(end_time-start_time))
     # model.computeIIS()
     # model.write("model1.ilp")
     result_x = np.zeros((max_k, max_i, max_j))
