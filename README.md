@@ -4,7 +4,7 @@ This is the group project for class Algorithm Design and Analysis (CS7310) in SJ
 Team mates: Tu Yanlun , Xie Yuzhang, Yu Jingwei (Team 16)
 
 ## Requirements:
-python==3.8.0
+python==3.8.0 \
 pandas==1.1.0 \
 xlrd==1.2.0 \
 numpy==1.19.1 \
